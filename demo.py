@@ -1,5 +1,8 @@
 # demonstrate api
 # inspirations: Q Language, Torch package for Lua
+# key idea: obvious notation for the programmers
+
+# With ideas from Stephen Hoyer
 
 from puc import Storage, Vector, Matrix, Tensor, Dictionary, Table, KeyedTable
 
@@ -51,7 +54,8 @@ t.deep_continguous_copy()  # ufuncs can be optimized for continuous storage
 # Dictionary is like a python dict but [] can return multiple values
 d = Dictionary()  # no storage
 d["a"]            # one value
-d[v]              # vector of values
+d[v]              # vector of values, returns a new object in general
+d[v] = 1          # exands 1 to a vector
 
 # How do you handle assignment to rows and columns?
 d['a1']  # returns a view of the data
