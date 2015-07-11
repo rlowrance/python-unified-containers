@@ -53,6 +53,13 @@ d = Dictionary()  # no storage
 d["a"]            # one value
 d[v]              # vector of values
 
+# How do you handle assignment to rows and columns?
+d['a1']  # returns a view of the data
+d[['a1', 'a2']]  # returns an object with new data
+d['a']['b'] = 1  # this works
+d[['a1', 'a2']]['b'] = 1  # breaks silently (in numpy); warns in pandas (usually)
+d[['a1', 'a2'], 'b'] = 1  # this works
+
 # Tables are dictionary-like objects conceptualized as an ordered list of
 # records. A Table is like a dataframe without observation names.
 #
