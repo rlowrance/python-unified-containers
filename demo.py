@@ -1,4 +1,5 @@
 # demonstrate api
+# inspirations: Q Language, Torch package for Lua
 
 from puc import Storage, Vector, Matrix, Tensor, Dictionary, Table, KeyedTable
 
