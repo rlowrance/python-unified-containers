@@ -14,9 +14,7 @@ s = Storage(n=10000, kind="string")
 s = Storage([0, 1, 1, 0], kind="bool")  # data provided
 s = Storage(place="memory")
 s = Storage(place="GPU")
-s = Storage(place=("disk", "path/to/file")
-
-# Future: place Storage on disk, GPU
+s = Storage(place=("disk", "path/to/file"))
 
 # Vectors are 1D views of parts of or all of a Storage
 
@@ -24,9 +22,11 @@ v = Vector(storage=s)  # all elements, same len as underlying storage
 v = Vector(storage=s, shape=[8])  # first 8 elements
 v = Vector(storage=s, shape=[5], offsets=[0], strides=[2])  # every other
 
+# TODO: illustrate what offset adds to the capabilities
+
 # indexing returns same shape as the indexer
 x = v[3]       # x is a python scalar
-x = v[[0, 3]]  # x is a Vector
+x = v[[0, 3]]  # x is a Vector, a new Storage
 x = v[Storage([0, 1, 0, 0, 1, 1, 0, 0, 0, 1], kind="bool")]  # masked selection
 
 # Matrices are 2D views of parts of or all of a Storage
@@ -36,6 +36,7 @@ x = m[2, :]  # one row
 x = m[row_mask, col_indices]  # selected rows and columns
 x = m[row_mask, :]
 x = m[:, col_indices]
+x = m[23,:]  # or m[23,...]
 
 # Vectors and Matrices are subclasses of Tensors
 # methods on Tensors
@@ -69,6 +70,13 @@ ktab = KeyedTable()  # syntax TBD
 
 t.groupby()  # most of the Pandas dataframe sql-like methods
 t.select("where ... group by ... having ... ordered by ...")  # sql statement
+t.select(where=..,, groupby=..., having=..., orderedby=...).
+# could compile the select statement like Python regex's
+# Q has a lambda-expression select statement function (not English)
+
+# See R dplyr vignettes for ideas; working with tidy data
+# has a minimal grammar for data analysis (maybe 8 functions)
+# see R tidier, package for tidying up data
 
 # can also select on Tensor and Dictionary
 # Inspiration is lang-Q's select statement
