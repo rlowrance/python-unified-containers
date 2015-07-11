@@ -33,10 +33,12 @@ x = v[Storage([0, 1, 0, 0, 1, 1, 0, 0, 0, 1], kind="bool")]  # masked selection
 m = Matrix(storage=s, shape=[3, 4], offsets=[0, 0], strides=[1, 1])  # dense
 x = m[:, 3]  # one column
 x = m[2, :]  # one row
+row_mask = Vector([0, 1])
+col_indices = Vector(range(10))
 x = m[row_mask, col_indices]  # selected rows and columns
 x = m[row_mask, :]
 x = m[:, col_indices]
-x = m[23,:]  # or m[23,...]
+x = m[23, :]  # or m[23,...]
 
 # Vectors and Matrices are subclasses of Tensors
 # methods on Tensors
@@ -70,16 +72,21 @@ ktab = KeyedTable()  # syntax TBD
 
 t.groupby()  # most of the Pandas dataframe sql-like methods
 t.select("where ... group by ... having ... ordered by ...")  # sql statement
-t.select(where=..,, groupby=..., having=..., orderedby=...).
+t.select(where=x, groupby=x, having=x, orderedby=x,)
 # could compile the select statement like Python regex's
 # Q has a lambda-expression select statement function (not English)
 
-# See R dplyr vignettes for ideas; working with tidy data
-# has a minimal grammar for data analysis (maybe 8 functions)
-# see R tidier, package for tidying up data
+# see R tidyr, package for tidying up data
 
-# can also select on Tensor and Dictionary
+# R's plyr methods on data frames (that depend on lazy evaluation)
+#  filter(), slice(), arrange(), select(), rename(), distinct(),
+#  mutate(), transmute(), summarize(), sample_n(), sample_frac()
+
+# R's tidyr methods on data frames clean up data
+#  gather(), separate(), spread()
+
+# Can also select on Tensor and Dictionary
 # Inspiration is lang-Q's select statement
 v.select("where > 10")
 d.select("where key < 10 and value > 20")
-t.select("first 10");
+t.select("first 10")
