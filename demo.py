@@ -2,15 +2,20 @@
 
 from puc import Storage, Vector, Matrix, Tensor, Dictionary, Table, KeyedTable
 
-# Storage is the actuall data
-# The other types are views of a Storage
+# Storage holds the actual data
+# Vectors, Matrices, and Tensors are views of Storage
 # A Storage can have zero or more views
 
 s = Storage(n=10, kind="bool")  # 10 elements
 s = Storage(n=100, kind="int64")
 s = Storage(n=1000, kind="float64")
 s = Storage(n=10000, kind="string")
-s = Storage([0, 1, 1, 0], kind="bool")
+s = Storage([0, 1, 1, 0], kind="bool")  # data provided
+s = Storage(place="memory")
+s = Storage(place="GPU")
+s = Storage(place=("disk", "path/to/file")
+
+# Future: place Storage on disk, GPU
 
 # Vectors are 1D views of parts of or all of a Storage
 
@@ -25,6 +30,11 @@ x = v[Storage([0, 1, 0, 0, 1, 1, 0, 0, 0, 1], kind="bool")]  # masked selection
 
 # Matrices are 2D views of parts of or all of a Storage
 m = Matrix(storage=s, shape=[3, 4], offsets=[0, 0], strides=[1, 1])  # dense
+x = m[:, 3]  # one column
+x = m[2, :]  # one row
+x = m[row_mask, col_indices]  # selected rows and columns
+x = m[row_mask, :]
+x = m[:, col_indices]
 
 # Vectors and Matrices are subclasses of Tensors
 # methods on Tensors
@@ -34,7 +44,7 @@ t.deepcopy()     # also copies the storage
 t.is_contiguous()
 t.deep_continguous_copy()  # ufuncs can be optimized for continuous storage
 
-# Dictionary have multiple items
+# Dictionary is like a python dict but [] can return multiple values
 d = Dictionary()  # no storage
 d["a"]            # one value
 d[v]              # vector of values
@@ -46,13 +56,21 @@ d[v]              # vector of values
 c1 = Vector(["a", "b", "c"])
 c2 = Vector([10, 20, 30])
 tab = Table(c1, c2)  # 2 columns, each with same number of rows
+# indexing tables is exactly like indexing Matrix objects
 
 # KeyedTable are dataframe-ike objects with distinct labels for the rows. It
 # is conceptually a dictionary of dictionaries. The unique keys could be,
 # for example, datetime stamps.
 ktab = KeyedTable()  # syntax TBD
 
-# operations on tables
+# operations on tables include SQL select, but with semantics slightly
+# changed to acknowledge that rows are ordered (as in Q-lang).
 
 t.groupby()  # most of the Pandas dataframe sql-like methods
 t.select("where ... group by ... having ... ordered by ...")  # sql statement
+
+# can also select on Tensor and Dictionary
+# Inspiration is lang-Q's select statement
+v.select("where > 10")
+d.select("where key < 10 and value > 20")
+t.select("first 10");
