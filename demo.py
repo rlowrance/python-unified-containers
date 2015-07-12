@@ -32,7 +32,11 @@ r = add(v, v)  # ufunc-like capability, result is new view of new storage
 v2 = v.deepcopy().make_contiguous()  # new storage, view had stride = 1
 add(v2, v2)      # potentially faster than operating on v
 
-# TODO: illustrate what offset adds to the capabilities
+# Illustration: what offsets allow
+def first_delta(v):
+    # require v to have an extra element at the end of its storage
+    w = Vector(storage=v.storage, shape=v.shape, offset=1)
+    return v - w
 
 # indexing returns same shape as the indexer
 x = v[3]       # x is a python scalar
