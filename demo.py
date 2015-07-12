@@ -4,7 +4,7 @@
 # - obvious notation for the programmers; no surprising semantics
 # - uniform notation for indexing vectors, matrices, dictionaries, tables
 
-# With ideas from Stephen Hoyer
+# With ideas from Stephen Hoyer and Jonathan Rocher
 
 from puc import Storage, Vector, Matrix, Tensor, Dictionary, Table, KeyedTable
 
@@ -62,6 +62,9 @@ t.deepcopy()     # also copies the storage
 t.is_contiguous()
 t.deep_continguous_copy()  # ufuncs can be optimized for continuous storage
 
+# python: [d[key] for key in key_list]
+# python: d[key1, key2] is sugar for d[(key1,key2)]
+# above from Jonathan Rocher
 # Dictionary is like a python dict but [] can return multiple values
 d = Dictionary()  # no storage
 d["a"]            # one value
@@ -83,6 +86,9 @@ c1 = Vector(["a", "b", "c"])
 c2 = Vector([10, 20, 30])
 tab = Table(c1, c2)  # 2 columns, each with same number of rows
 # indexing tables is exactly like indexing Matrix objects
+# Pandas Dataframes are stored in blocks (not columns nor rows)
+#  attempting to optimize a mix of row-based retrievals and column-based
+#  retrieval and slices of both
 
 # KeyedTable are dataframe-ike objects with distinct labels for the rows. It
 # is conceptually a dictionary of dictionaries. The unique keys could be,
