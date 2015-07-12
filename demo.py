@@ -1,6 +1,8 @@
 # demonstrate api
 # inspirations: Q Language, Torch package for Lua
-# key idea: obvious notation for the programmers
+# key ideas:
+* - obvious notation for the programmers; no surprising semantics
+#
 
 # With ideas from Stephen Hoyer
 
