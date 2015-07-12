@@ -1,8 +1,8 @@
 # demonstrate api
 # inspirations: Q Language, Torch package for Lua
 # key ideas:
-* - obvious notation for the programmers; no surprising semantics
-#
+# - obvious notation for the programmers; no surprising semantics
+# - uniform notation for indexing vectors, matrices, dictionaries, tables
 
 # With ideas from Stephen Hoyer
 
@@ -21,11 +21,16 @@ s = Storage(place="memory")
 s = Storage(place="GPU")
 s = Storage(place=("disk", "path/to/file"))
 
+# There will be ufunc equivalents that apply to Storage
+
 # Vectors are 1D views of parts of or all of a Storage
 
 v = Vector(storage=s)  # all elements, same len as underlying storage
 v = Vector(storage=s, shape=[8])  # first 8 elements
 v = Vector(storage=s, shape=[5], offsets=[0], strides=[2])  # every other
+r = add(v, v)  # ufunc-like capability, result is new view of new storage
+v2 = v.deepcopy().make_contiguous()  # new storage, view had stride = 1
+add(v2, v2)      # potentially faster than operating on v
 
 # TODO: illustrate what offset adds to the capabilities
 
