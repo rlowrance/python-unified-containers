@@ -6,7 +6,7 @@
 
 # With ideas from Stephen Hoyer and Jonathan Rocher
 
-from puc import Storage, Vector, Matrix, Tensor, Dictionary, Table, KeyedTable
+from puc_demo import Storage, Vector, Matrix, Tensor, Dictionary, Table, KeyedTable
 
 # Storage holds the actual data
 # Vectors, Matrices, and Tensors are views of Storage
