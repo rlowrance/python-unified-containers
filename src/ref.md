@@ -36,7 +36,7 @@ Vint8 instances hold signed 8-bit integers. Use Vint8 instances when vectors of
 booleans would be used. They may be constructed in these ways:
 
     v = Vint8(<python int that fits in 8 signed bits>)
-    v = Vint8(<python list>)
+    v = Vint8(<python list of ints that fit in 8 signed bits>)
     v = Vint8(<python tuple>]
     v = Vint8(<Vint8 instance>)
     v = Vint8(<numpy array with dtype int8>)
