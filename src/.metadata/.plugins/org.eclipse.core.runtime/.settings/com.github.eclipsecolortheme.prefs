@@ -1,0 +1,4 @@
+APPLY_THEME_TO=2
+SKIP_APPLY_FIX_TO_NON_DARK=true
+colorTheme=Solarized Dark
+eclipse.preferences.version=1
