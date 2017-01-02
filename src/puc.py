@@ -12,6 +12,7 @@ where X is in {Bool, Int64, Float64, DateTime, TimeDelta, String, Object}
 
 # import abc
 import collections
+import datetime
 import numpy as np
 import pdb
 import unittest
@@ -111,7 +112,14 @@ class ScalarFloat64(Scalar):
 
     def __add__(self, other):
         return super(ScalarFloat64, self).__add__(other)
-
+class ScalarDateTime(Scalar):
+    pass
+class ScalarTimeDelta(Scalar):
+    pass
+class ScalarString(Scalar):
+    pass
+class ScalarObject(Scalar):
+    pass
 
 class TestScalar(unittest.TestCase):
     def check(self, constructed, expected_value, expected_name, expected_type):
@@ -119,6 +127,17 @@ class TestScalar(unittest.TestCase):
         self.assertEqual(constructed.name, expected_name)
         self.assertTrue(isinstance(constructed, Scalar))
         self.assertTrue(isinstance(constructed, expected_type))
+
+    def test_init_ScalarFloat64(self):
+        tests = (
+            ((10.0), 1),
+            ((7.0, 11.0), 2)
+        )
+        pdb.set_trace()
+        for args, expected_len in tests:
+            x = ScalarFloat64(*args)
+            self.assertEqual(ScalarFloat64, type(x))
+            self.assertEqual(expected_len, len(x))
 
     def test_init_ScalarBool(self):
 
@@ -195,29 +214,112 @@ class Vector(PUC):
     def __len__(self):
         return self.value.size
 
-    def __getitem__(self, index):
-        allowed_types = (ScalarInt64, VectorBool, VectorInt64)
-        if not isinstance(index, allowed_types):
-            raise PUCTypeError(index, allowed_types)
-        if isinstance(index, ScalarInt64):
-            # return a Scalar
-            index_value = index.value
+
+    def _check_index(self, index):
+        'raise if index is not valid; otherwise return None'
+        # maybe return index values as a list[int], because I'm going to have to examine all the indices
+        allowed_index_types = (ScalarInt64, VectorBool, VectorInt64, int, list)
+        if not isinstance(index, allowed_index_types):
+            raise PUCTypeError(index, allowed_index_types)
+        # if index is a list, it must be of all bools, ints, or floats
+        if isinstance(index, list):
+            item_type = None
+            for item in index:
+                if item_type is None:
+                    item_type = type(item)
+                    if item_type not in (bool, float, int):
+                        msg = 'each element of a list index must be a bool, int, or float; found %s' % item_type
+                        raise PUCIndexError(index, msg=msg)
+                else:
+                    if type(item) != item_type:
+                        msg = 'found index element of type %s, not expected type %s' % (
+                            type(item),
+                            item_type,
+                        )
+                        raise PUCIndexError(index, msg=msg)
+        if isinstance(index, (ScalarInt64, int)):
+            index_value = index.value if isinstance(index, PUC) else index
             if index_value < 0:
                 raise PUCIndexError(index, msg='index value %s is negative' % index_value)
             if index_value >= len(self):
                 raise PUCIndexError(index, msg='index value %s  not less than length %s' % (index_value, len(self)))
-            result_value = self.value[index_value]
+        elif isinstance(index, VectorBool) or item_type == bool:
+            assert False, 'write me'
+        elif isinstance(index, VectorInt64) or item_type == int:
+            assert False, 'write me'
+        else:
+            assert False, 'internal error'
+
+   
+    def _check_value(self, index, value):
+        'raise PUCIndexError if incompatible for self[index] = value; otherwise return None'
+        if (
+            (isinstance(self, VectorBool) and isinstance(value, (ScalarBool, bool))) or
+            (isinstance(self, VectorInt64) and isinstance(value, (ScalarInt64, int))) or
+            (isinstance(self, VectorFloat64) and isinstance(value, (ScalarFloat64, float))) or
+            (isinstance(self, VectorDateTime) and isinstance(value, (ScalarDateTime, datetime.datetime))) or
+            (isinstance(self, VectorTimeDelta) and isinstance(value, (ScalarTimeDelta, datetime.timedelta))) or
+            (isinstance(self, VectorString) and isinstance(value, (ScalarString, str))) or
+            (isinstance(self, VectorObject) and isinstance(value, (ScalarObject, object)))
+        ):
+            return None
+        else:
+            msg = 'value of type %s is not compatible with a Vector of type %s' % (
+                    type(value),
+                    type(self),
+                )
+            raise PUCIndexError(msg)
+
+    def __getitem__(self, index):
+        'return new PUC object of the same shape and kind as the index'
+        self._check_index(index)
+        if isinstance(index, (ScalarInt64, int)):
+            # return a Scalar
+            result_value = self.value[index.value if isinstance(index, ScalarInt64) else index]
             if isinstance(self, VectorBool):
                 return ScalarBool(result_value)
             if isinstance(self, VectorInt64):
                 return ScalarInt64(result_value)
-            assert False, 'TODO: add other VectorX types'
+            if isinstance(self, VectorFloat64):
+                return ScalarFloat64(result_value)
+            if isinstance(self, VectorDateTime):
+                return ScalarDateTime(result_value)
+            if isinstance(self, VectorTimeDelta):
+                return ScalarTimeDelta(result_value)
+            if isinstance(self, VectorString):
+                return ScalarString(result_value)
+            if isinstance(self, VectorObject):
+                return ScalarObject(result_value)
+            assert False, 'internal error'
         if isinstance(index, VectorBool):
+            # return Vector with selected elements
             pdb.set_trace()
             assert False, 'write me'
         if isinstance(index, VectorInt64):
+            # return Vector with selected elements
             pdb.set_trace()
             assert False, 'write me'
+        assert False, 'internal error'
+
+    def __setitem__(self, index, value):
+        'mutate self'
+        self._check_index(index)
+        self._check_value(index, value) 
+        if isinstance(index, ScalarInt64):
+            self.value[index.value] = value.value
+        elif isinstance(index, int):
+            self.value[index] = value
+        elif isinstance(index, VectorBool):
+            # new_value must be a Vector
+            # take repeatedly from it
+            assert False, 'write me'
+        elif isinstance(index, VectorInt64):
+            # new_value must be a Vector
+            # take repeatedly from it
+            assert False, 'write me'
+        else:
+            assert False, 'internal error'
+
 
 class VectorBool(Vector):
     def __init__(self, *args, **kwds):
@@ -230,6 +332,17 @@ class VectorInt64(Vector):
         kwds.update(dtype=int)
         kwds.update(allowed_types=(int,))
         super(VectorInt64, self).__init__(*args, **kwds)
+
+class VectorFloat64(Vector):
+    pass
+class VectorDateTime(Vector):
+    pass
+class VectorTimeDelta(Vector):
+    pass
+class VectorString(Vector):
+    pass
+class VectorObject():
+    pass
 
 class TestVector(unittest.TestCase):
     def test_init_Vector(self):
@@ -276,16 +389,30 @@ class TestVector(unittest.TestCase):
             x = VectorInt64(*args)
             self.assertEqual(expected_len, len(x))
     
-    def test_getitem(self):
-        def getitem(x, index):
-            return x[index]
-        x = VectorInt64(7, 11)
-        self.assertEqual(ScalarInt64(7), x[ScalarInt64(0)])
-        y = VectorInt64()
+    def test_getitem_setitem_ScalarInt64(self):
+        # test when the index is a ScalarInt64 or int
+        # its OK to test just one subclaass of Vector, because the implementation in in class Vector
+        x = VectorInt64(7, 11)  # ? should we require ScalarInt64's as arguments
+        index0 = ScalarInt64(0)
+        index1 = ScalarInt64(1)
+        s7 = ScalarInt64(7)
+        s11 = ScalarInt64(11)
+        s23 = ScalarInt64(23)
+        # test __getitem__
+        self.assertEqual(s7, x[index0])
+        self.assertEqual(s7, x[0])
+        # test __setitem__
+        x[index1] = s23
+        self.assertEqual(s7, x[0])
+        self.assertEqual(s23, x[1])
+        x[1] = 23
+        self.assertEqual(23, x[1].value)
     
-    def test_setitem(self):
-        pass
-
+    def test_getitem_setitem_zero_length_Vector(self):
+        x = VectorInt64()
+        def getitem(index):
+            return x[index]
+        self.assertRaises(PUCIndexError, getitem, 0)
 
 if __name__ == '__main__':
     if False:
