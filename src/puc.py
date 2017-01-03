@@ -81,6 +81,7 @@ class Scalar(PUC):
             )
 
     def __add__(self, other):
+        # maybe: allow Scalar + (bool|int|float)
         allowed_types = (type(self),)
         if isinstance(other, allowed_types):
             if isinstance(self, ScalarBool):
