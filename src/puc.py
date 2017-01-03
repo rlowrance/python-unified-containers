@@ -44,18 +44,34 @@ class PUCTypeError(PUCException):
 class PUCIndexError(PUCException):
     def __init__(self, obj, msg=None):
         super(PUCIndexError, self).__init__(obj, msg=msg)
+class PUCConstructionError(PUCException):
+    def __init__(self, obj, msg=None):
+        super (PUCConstructionError, self).__init__(obj, msg=msg)
 
 
 class PUC(object):
-    pass
-
+    types_bool = (bool, np.bool_)
+    types_int = (int, np.int32, np.int64)
+    types_float = (float, np.float_)
+    types_datetime = (datetime.datetime,)
+    types_timedelta = (datetime.timedelta,)
+    types_string = (str,)
+    types_object = (object,)
 
 class Scalar(PUC):
-    # TODO: add subtypes ScalarString, ScalarDateTime, ScalarTimeDelta, ScalarObject
-    def __init__(self, value, name=None):
-        # subclass checks types of value
+    def __init__(self, value, name=None, allowed_types=None):
+        #print 'Scalar.__init__', value, type(value), name, allowed_types
+        if type(value) not in allowed_types:
+            #print 'Scalar.__init__', 'will raise'
+            raise PUCTypeError(value, allowed_types)
         self.value = value
-        self.name = name  # for example, a column name from a Table
+        if name is None or isinstance(name, str):
+            self.name = name
+        else:
+            raise PUCConstructionError(
+                name,
+                msg='name must be None or a str, was %s' % name,
+            )
 
     def __repr__(self):
         return '%s(value=%s%s)' % (
@@ -67,7 +83,10 @@ class Scalar(PUC):
     def __add__(self, other):
         allowed_types = (type(self),)
         if isinstance(other, allowed_types):
-            return type(self)(self.value + other.value)
+            if isinstance(self, ScalarBool):
+                return ScalarInt64(self.value + other.value)
+            else:
+                return type(self)(self.value + other.value)
         else:
             raise PUCTypeError(other, allowed_types)
 
@@ -77,41 +96,16 @@ class Scalar(PUC):
 
 class ScalarBool(Scalar):
     def __init__(self, value, name=None):
-        allowed_types = (bool, np.bool_)
-        if isinstance(value, allowed_types):
-            super(ScalarBool, self).__init__(value, name=name)
-        else:
-            raise PUCTypeError(value, allowed_types)
-
-    def __add__(self, other):
-        if isinstance(other, ScalarBool):
-            return ScalarInt64(self.value + other.value)
-        else:
-            raise PUCTypeError(other, type(self))
-
+        super(ScalarBool, self).__init__(value, name=name, allowed_types=PUC.types_bool)
 
 class ScalarInt64(Scalar):
     def __init__(self, value, name=None):
-        allowed_types = (int,)
-        if isinstance(value, allowed_types):
-            super(ScalarInt64, self).__init__(value, name=name)
-        else:
-            raise PUCTypeError(value, allowed_types)
-
-    def __add__(self, other):
-        return super(ScalarInt64, self).__add__(other)
-
+        super(ScalarInt64, self).__init__(value, name=name, allowed_types=PUC.types_int)
 
 class ScalarFloat64(Scalar):
     def __init__(self, value, name=None):
-        allowed_types = (float,)
-        if isinstance(value, allowed_types):
-            super(ScalarFloat64, self).__init__(value, name=name)
-        else:
-            raise PUCTypeError(value, allowed_types)
+        super(ScalarFloat64, self).__init__(value, name=name, allowed_types=PUC.types_float)
 
-    def __add__(self, other):
-        return super(ScalarFloat64, self).__add__(other)
 class ScalarDateTime(Scalar):
     pass
 class ScalarTimeDelta(Scalar):
@@ -123,21 +117,18 @@ class ScalarObject(Scalar):
 
 class TestScalar(unittest.TestCase):
     def check(self, constructed, expected_value, expected_name, expected_type):
+        #print 'TestScalar.check', self
         self.assertEqual(constructed.value, expected_value)
         self.assertEqual(constructed.name, expected_name)
         self.assertTrue(isinstance(constructed, Scalar))
         self.assertTrue(isinstance(constructed, expected_type))
 
     def test_init_ScalarFloat64(self):
-        tests = (
-            ((10.0), 1),
-            ((7.0, 11.0), 2)
-        )
-        pdb.set_trace()
-        for args, expected_len in tests:
-            x = ScalarFloat64(*args)
+        good_tests = (-1.0, 0.0, 7.0)
+        for arg in good_tests:
+            x = ScalarFloat64(arg)
             self.assertEqual(ScalarFloat64, type(x))
-            self.assertEqual(expected_len, len(x))
+        self.assertRaises(PUCConstructionError, ScalarFloat64, 7.0, 10.0)
 
     def test_init_ScalarBool(self):
 
@@ -162,12 +153,12 @@ class TestScalar(unittest.TestCase):
             self.assertEqual(expected_value, actual.value)
 
     def test_init_ScalarInt64(self):
-        good_values = (-1, 0, 1, 900000000, False, True)  # NOTE: a bool is an int
+        good_values = (-1, 0, 1, 900000000) 
         for value in good_values:
             x = ScalarInt64(value)
             self.check(x, value, None, ScalarInt64)
 
-        bad_values = (0.0, ScalarBool(True), ScalarInt64(123), 'abc')
+        bad_values = (0.0, False, True, ScalarBool(True), ScalarInt64(123), 'abc')
         for value in bad_values:
             self.assertRaises(PUCTypeError, ScalarInt64, value)
 
@@ -182,11 +173,7 @@ class TestScalar(unittest.TestCase):
             self.assertTrue(isinstance(actual, ScalarInt64))
             self.assertEqual(expected_value, actual.value)
 
-    def test_init_ScalarFloat64(self):
-        good_values = (-1.0, 0.0, 123.0, 1e700)
-        for value in good_values:
-            x = ScalarFloat64(value)
-            self.check(x, value, None, ScalarFloat64)
+
 
 class Vector(PUC):
     'abstract class to hold common methods for VectorX'
@@ -217,8 +204,9 @@ class Vector(PUC):
 
     def _check_index(self, index):
         'raise if index is not valid; otherwise return None'
+        # treat an Iterable[X] is if it were a VectorX
         # maybe return index values as a list[int], because I'm going to have to examine all the indices
-        allowed_index_types = (ScalarInt64, VectorBool, VectorInt64, int, list)
+        allowed_index_types = (ScalarInt64, VectorBool, VectorInt64, int, collections.Iterable)
         if not isinstance(index, allowed_index_types):
             raise PUCTypeError(index, allowed_index_types)
         # if index is a list, it must be of all bools, ints, or floats
