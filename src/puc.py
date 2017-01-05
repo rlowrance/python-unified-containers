@@ -82,10 +82,16 @@ class Scalar(PUC):
         allowed_types = (type(self),)
         if isinstance(other, allowed_types):
             if isinstance(self, ScalarBool):
-                # special case: + for bools returns and int64
+                # special case: + for ScalarBools returns an ScalarInt64
                 return ScalarInt64(self.value + other.value)
             else:
-                return type(self)(self.value + other.value)
+                if isinstance(self, (ScalarDatetime, ScalarObject)):
+                    raise PUCException(
+                        self,
+                        'unable to add values of type %s value %s' % (type(self), self),
+                    )
+                else:
+                    return type(self)(self.value + other.value)
         else:
             raise PUCTypeError(other, allowed_types)
 
@@ -113,7 +119,6 @@ class ScalarString(Scalar):
         super(ScalarString, self).__init__(value, name=name, allowed_types=PUC.types_string)
 class ScalarObject(Scalar):
     def __init__(self, value, name=None):
-        print 'ScalarObject.__init__', value
         super(ScalarObject, self).__init__(value, name=name, allowed_types=PUC.types_object)
 
 class TestScalar(unittest.TestCase):
@@ -161,33 +166,36 @@ class TestScalar(unittest.TestCase):
             self.assertTrue(isinstance(s, Scalar))
             self.assertEqual(test, s.name)
 
-
-
-
-    def test_add_ScalarBool(self):
-        return
+    def test_add(self):
+        def dt(x):
+            return datetime.datetime(x, 1, 1)
+        def td(x):
+            return datetime.timedelta(x)
         tests = (
-            (True, True, 2),
-            (True, False, 1),
-            (False, True, 1),
-            (False, False, 0))
-        for x_value, y_value, expected_value in tests:
-            actual = ScalarBool(x_value) + ScalarBool(y_value)
-            self.assertTrue(isinstance(actual, ScalarInt64))
-            self.assertEqual(expected_value, actual.value)
+            (ScalarBool, (True, False, 1), None),
+            (ScalarInt64, (-1, 1, 0), None),
+            (ScalarFloat64, (7.0, 11.0, 18.0), None),
+            (ScalarDatetime, None, None),  # but - will yield timedelta
+            (ScalarTimedelta, (td(1), td(2), td(3)), None),  # + is allowed
+            (ScalarString, ('ab', 'cd', 'abcd'), None),
+            (ScalarObject, None, ('a', 1)),
+        )
+        for constructor, good, bad in tests:
+            if good is not None:
+                a, b, c = good
+                expected = ScalarInt64(c) if constructor == ScalarBool else constructor(c)
+                # print a, b, expected, constructor(a) + constructor(b)
+                self.assertEqual(expected, constructor(a) + constructor(b))
+            if bad is not None:
+                def add(a, b):
+                    return constructor(a) + constructor(b)
+                a, b = bad
+                # print constructor, a, b
+                self.assertRaises(PUCException, add, a, b)
 
 
-    def test_add_ScalarInt64(self):
-        return
-        tests = (
-            (-1, 1, 0),
-            (0, 123, 123),
-            (2, 3, 5),
-            )
-        for x_value, y_value, expected_value in tests:
-            actual = ScalarInt64(x_value) + ScalarInt64(y_value)
-            self.assertTrue(isinstance(actual, ScalarInt64))
-            self.assertEqual(expected_value, actual.value)
+
+
 
 
 
